@@ -93,6 +93,10 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
       <div><div class="n" id="pName" style="font-size:20px"></div>
       <div class="sub" id="pInfo"></div></div>
     </div>
+    <div class="row" id="pasteRow" style="margin-bottom:6px">
+      <input id="picUrl" placeholder="הדבק כאן תמונה או קישור לתמונה" style="font-size:14px">
+      <button class="btn gray" style="flex:0 0 80px;margin-top:6px;font-size:15px" id="picUrlGo">שמור</button>
+    </div>
     <label>כמות (גרם / מ״ל)</label>
     <input id="grams" type="number" inputmode="decimal" value="100">
     <div class="card" id="pCalc"></div>
@@ -376,6 +380,35 @@ function goalCalc(){
 }
 ['gP','gC','gF'].forEach(i => $(i).oninput = goalCalc);
 $('saveGoal').onclick = () => { const m = readGoals(); if (kcalOf(m) > 0) { store.set('macros', m); render(); show('today'); } };
+
+function saveMyPic(src){
+  if (!current || !src) return;
+  const m = myImgs(); m[current.name] = src; store.set('myImgs', m);
+  $('pPic').innerHTML = picHTML(current); render();
+}
+function blobToPic(blob){
+  const img = new Image();
+  img.onload = () => {
+    const S = 200, c = document.createElement('canvas'); c.width = c.height = S;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,S,S);
+    const r = Math.min(S / img.width, S / img.height), w = img.width * r, h = img.height * r;
+    x.drawImage(img, (S-w)/2, (S-h)/2, w, h);
+    saveMyPic(c.toDataURL('image/jpeg', .8)); URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(blob);
+}
+function urlPic(){
+  const u = $('picUrl').value.trim();
+  if (/^https:\/\//.test(u)) { saveMyPic(u); $('picUrl').value = ''; }
+  else if (u) $('picUrl').value = '';
+}
+$('picUrlGo').onclick = urlPic;
+$('picUrl').addEventListener('paste', e => {
+  const items = [...(e.clipboardData && e.clipboardData.items || [])];
+  const im = items.find(i => i.type.startsWith('image/'));
+  if (im) { e.preventDefault(); blobToPic(im.getAsFile()); return; }
+  setTimeout(urlPic, 50);
+});
 
 function setMyPic(){ $('picFile').click(); }
 $('pPic').onclick = setMyPic; $('picBtn').onclick = setMyPic;
