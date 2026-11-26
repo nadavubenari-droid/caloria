@@ -2,15 +2,295 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>פתח את קלוריה</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#111">
+<title>מחשבון קלוריות</title>
 <style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;background:#111}
-a{padding:18px 36px;border-radius:14px;background:#2e7d32;color:#fff;font-size:22px;text-decoration:none}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;background:#111;color:#eee;padding-bottom:80px}
+header{padding:16px;background:#1b1b1b;position:sticky;top:0;z-index:5}
+.dateRow{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.dateRow button{background:none;border:none;color:#8bc34a;font-size:24px;padding:4px 12px}
+.big{font-size:34px;font-weight:700}
+.bar{height:10px;background:#333;border-radius:6px;overflow:hidden;margin:8px 0}
+.bar div{height:100%;background:#4caf50;transition:width .3s}
+.bar.over div{background:#e53935}
+.sub{opacity:.7;font-size:14px}
+main{padding:12px}
+.card{background:#1e1e1e;border-radius:12px;padding:12px;margin-bottom:10px}
+.entry{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.entry .n{font-weight:600}
+.del{background:#333;border:none;color:#e57373;border-radius:8px;padding:6px 10px;font-size:16px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#1b1b1b;border-top:1px solid #333}
+nav button{flex:1;background:none;border:none;color:#aaa;padding:14px 0;font-size:15px}
+nav button.on{color:#8bc34a;font-weight:700}
+.view{display:none}.view.on{display:block}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #444;background:#222;color:#eee;font-size:17px;margin:6px 0}
+label{font-size:14px;opacity:.8}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;background:#2e7d32;color:#fff;font-size:18px;margin-top:8px}
+.btn.gray{background:#333}
+video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:cover}
+.res{cursor:pointer}
+.msg{padding:10px;text-align:center;opacity:.8}
+.row{display:flex;gap:8px}.row>*{flex:1}
 </style>
 </head>
 <body>
-<a id="open" href="intent://launch?id=com.protein2#Intent;scheme=market;package=com.android.vending;end">פתח את קלוריה</a>
-<script>location.href=document.getElementById('open').href;</script>
+
+<header>
+  <div class="dateRow">
+    <button id="prevDay">›</button>
+    <div id="dateLabel"></div>
+    <button id="nextDay">‹</button>
+  </div>
+  <div class="big"><span id="totKcal">0</span> <span class="sub">/ <span id="goalKcal">2000</span> קל׳</span></div>
+  <div class="bar" id="barWrap"><div id="bar" style="width:0"></div></div>
+  <div class="sub">חלבון: <span id="totProt">0</span> ג׳ · נשאר: <span id="left">2000</span> קל׳</div>
+</header>
+
+<main>
+  <!-- היום -->
+  <section class="view on" id="v-today">
+    <div id="list"></div>
+  </section>
+
+  <!-- סריקה -->
+  <section class="view" id="v-scan">
+    <video id="video" playsinline muted></video>
+    <div class="msg" id="scanMsg">כוון את המצלמה לברקוד</div>
+    <div class="row">
+      <input id="manualCode" inputmode="numeric" placeholder="או הקלד ברקוד">
+      <button class="btn" style="flex:0 0 90px;margin-top:6px" id="manualGo">חפש</button>
+    </div>
+  </section>
+
+  <!-- חיפוש -->
+  <section class="view" id="v-search">
+    <div class="row">
+      <input id="q" placeholder="חפש מוצר (למשל: קוטג׳, במבה)">
+      <button class="btn" style="flex:0 0 90px;margin-top:6px" id="qGo">חפש</button>
+    </div>
+    <div id="results"></div>
+    <button class="btn gray" id="addManual">+ הוסף ידנית</button>
+  </section>
+
+  <!-- מוצר -->
+  <section class="view" id="v-product">
+    <div class="card">
+      <div class="n" id="pName" style="font-size:20px"></div>
+      <div class="sub" id="pInfo"></div>
+    </div>
+    <label>כמות (גרם / מ״ל)</label>
+    <input id="grams" type="number" inputmode="decimal" value="100">
+    <div class="card" id="pCalc"></div>
+    <button class="btn" id="addBtn">הוסף ליומן</button>
+    <button class="btn gray" id="cancelBtn">ביטול</button>
+  </section>
+
+  <!-- מוצר חדש -->
+  <section class="view" id="v-new">
+    <div class="msg" id="newMsg">המוצר לא נמצא במאגר. הכנס נתונים מהאריזה (ל-100 גרם) — זה יישמר לפעם הבאה.</div>
+    <label>שם המוצר</label><input id="nName">
+    <div class="row">
+      <div><label>קלוריות ל-100 ג׳</label><input id="nKcal" type="number" inputmode="decimal"></div>
+      <div><label>חלבון ל-100 ג׳</label><input id="nProt" type="number" inputmode="decimal"></div>
+    </div>
+    <button class="btn" id="saveNew">שמור והמשך</button>
+    <button class="btn gray" id="cancelNew">ביטול</button>
+  </section>
+
+  <!-- הגדרות -->
+  <section class="view" id="v-settings">
+    <label>יעד קלוריות יומי</label>
+    <input id="goalIn" type="number" inputmode="numeric">
+    <button class="btn" id="saveGoal">שמור</button>
+    <div class="card sub" style="margin-top:16px">נתוני המוצרים מגיעים מ-Open Food Facts. מוצרים שהוספת ידנית והיומן נשמרים בטלפון הזה בלבד.</div>
+  </section>
+</main>
+
+<nav>
+  <button data-v="today" class="on">היום</button>
+  <button data-v="scan">סריקה</button>
+  <button data-v="search">חיפוש</button>
+  <button data-v="settings">הגדרות</button>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+let day = new Date(); day.setHours(0,0,0,0);
+let current = null; // {code,name,kcal,prot}
+const OFF = 'https://world.openfoodfacts.org';
+const FIELDS = 'code,product_name,product_name_he,brands,nutriments';
+
+const key = () => 'log-' + day.toISOString().slice(0,10);
+const goal = () => store.get('goal', 2000);
+const myFoods = () => store.get('myFoods', {});
+
+function render(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((today - day) / 864e5);
+  $('dateLabel').textContent = diff === 0 ? 'היום' : diff === 1 ? 'אתמול' : day.toLocaleDateString('he-IL');
+  const log = store.get(key(), []);
+  let k = 0, p = 0;
+  $('list').innerHTML = log.length ? '' : '<div class="msg">עוד לא נרשם כלום. סרוק ברקוד או חפש מוצר.</div>';
+  log.forEach((e, i) => {
+    k += e.kcal; p += e.prot;
+    const d = document.createElement('div');
+    d.className = 'card entry';
+    d.innerHTML = `<div><div class="n"></div><div class="sub">${e.grams} ג׳ · ${Math.round(e.kcal)} קל׳ · ${e.prot.toFixed(1)} ג׳ חלבון</div></div><button class="del">✕</button>`;
+    d.querySelector('.n').textContent = e.name;
+    d.querySelector('.del').onclick = () => { log.splice(i,1); store.set(key(), log); render(); };
+    $('list').appendChild(d);
+  });
+  const g = goal();
+  $('totKcal').textContent = Math.round(k);
+  $('goalKcal').textContent = g;
+  $('totProt').textContent = p.toFixed(1);
+  $('left').textContent = Math.round(g - k);
+  $('bar').style.width = Math.min(100, k / g * 100) + '%';
+  $('barWrap').classList.toggle('over', k > g);
+}
+
+function show(v){
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  if (v === 'scan') startScan(); else stopScan();
+  if (v === 'settings') $('goalIn').value = goal();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.v));
+$('prevDay').onclick = () => { day.setDate(day.getDate()-1); render(); };
+$('nextDay').onclick = () => { day.setDate(day.getDate()+1); render(); };
+
+// ---- product ----
+function fromOFF(p){
+  const n = p.nutriments || {};
+  let kcal = n['energy-kcal_100g'];
+  if (kcal == null && n['energy_100g'] != null) kcal = n['energy_100g'] / 4.184;
+  return {
+    code: p.code,
+    name: (p.product_name_he || p.product_name || 'מוצר ללא שם') + (p.brands ? ' · ' + p.brands.split(',')[0] : ''),
+    kcal: kcal == null ? null : +kcal,
+    prot: n['proteins_100g'] == null ? 0 : +n['proteins_100g']
+  };
+}
+function openProduct(p){
+  if (p.kcal == null){ openNew(p.code, p.name, 'למוצר הזה אין נתוני קלוריות במאגר. הכנס מהאריזה (ל-100 גרם).'); return; }
+  current = p;
+  $('pName').textContent = p.name;
+  $('pInfo').textContent = `ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · ${p.prot.toFixed(1)} ג׳ חלבון`;
+  $('grams').value = 100;
+  calc();
+  show('product');
+}
+function calc(){
+  const g = +$('grams').value || 0;
+  $('pCalc').textContent = `${Math.round(current.kcal * g / 100)} קלוריות · ${(current.prot * g / 100).toFixed(1)} ג׳ חלבון`;
+}
+$('grams').oninput = calc;
+$('addBtn').onclick = () => {
+  const g = +$('grams').value || 0;
+  if (!g) return;
+  const log = store.get(key(), []);
+  log.push({ name: current.name, grams: g, kcal: current.kcal * g / 100, prot: current.prot * g / 100 });
+  store.set(key(), log);
+  render(); show('today');
+};
+$('cancelBtn').onclick = () => show('today');
+
+function openNew(code, name, msg){
+  $('newMsg').textContent = msg || 'המוצר לא נמצא במאגר. הכנס נתונים מהאריזה (ל-100 גרם) — זה יישמר לפעם הבאה.';
+  $('nName').value = name || ''; $('nKcal').value = ''; $('nProt').value = '';
+  $('saveNew').dataset.code = code || '';
+  show('new');
+}
+$('saveNew').onclick = () => {
+  const name = $('nName').value.trim(), kcal = +$('nKcal').value, prot = +$('nProt').value || 0;
+  if (!name || !kcal) { alertMsg('צריך שם וקלוריות'); return; }
+  const code = $('saveNew').dataset.code || ('my-' + Date.now());
+  const foods = myFoods(); foods[code] = { code, name, kcal, prot }; store.set('myFoods', foods);
+  openProduct(foods[code]);
+};
+$('cancelNew').onclick = () => show('today');
+$('addManual').onclick = () => openNew('', $('q').value.trim());
+function alertMsg(t){ $('newMsg').textContent = t; }
+
+async function lookup(code){
+  code = String(code).trim();
+  if (!code) return;
+  const mine = myFoods()[code];
+  if (mine) { openProduct(mine); return; }
+  $('scanMsg').textContent = 'מחפש ' + code + '...';
+  try {
+    const r = await fetch(`${OFF}/api/v2/product/${code}.json?fields=${FIELDS}`);
+    const j = await r.json();
+    if (j.status === 1 && j.product) openProduct(fromOFF(j.product));
+    else openNew(code);
+  } catch(e) {
+    openNew(code, '', 'אין חיבור למאגר. אפשר להכניס את הנתונים ידנית.');
+  }
+}
+$('manualGo').onclick = () => lookup($('manualCode').value);
+
+// ---- search ----
+async function search(){
+  const q = $('q').value.trim();
+  if (!q) return;
+  const res = $('results');
+  res.innerHTML = '<div class="msg">מחפש...</div>';
+  const mine = Object.values(myFoods()).filter(f => f.name.includes(q));
+  let items = mine.slice();
+  try {
+    const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=25&fields=${FIELDS}`);
+    const j = await r.json();
+    items = items.concat((j.products || []).map(fromOFF).filter(p => p.kcal != null));
+  } catch(e) {}
+  res.innerHTML = items.length ? '' : '<div class="msg">לא נמצאו תוצאות. אפשר להוסיף ידנית.</div>';
+  items.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'card res';
+    d.innerHTML = `<div class="n"></div><div class="sub">${Math.round(p.kcal)} קל׳ · ${p.prot.toFixed(1)} ג׳ חלבון ל-100 ג׳</div>`;
+    d.querySelector('.n').textContent = p.name;
+    d.onclick = () => openProduct(p);
+    res.appendChild(d);
+  });
+}
+$('qGo').onclick = search;
+$('q').onkeydown = e => { if (e.key === 'Enter') search(); };
+
+// ---- scanner ----
+let stream = null, detector = null, scanning = false;
+async function startScan(){
+  if (!('BarcodeDetector' in window)) { $('scanMsg').textContent = 'הדפדפן לא תומך בסריקה — הקלד את הברקוד'; return; }
+  try {
+    detector = detector || new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128'] });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const v = $('video'); v.srcObject = stream; await v.play();
+    scanning = true; $('scanMsg').textContent = 'כוון את המצלמה לברקוד';
+    loop();
+  } catch(e) { $('scanMsg').textContent = 'אין גישה למצלמה — הקלד את הברקוד'; }
+}
+async function loop(){
+  if (!scanning) return;
+  try {
+    const codes = await detector.detect($('video'));
+    if (codes.length) { const c = codes[0].rawValue; stopScan(); if (navigator.vibrate) navigator.vibrate(80); lookup(c); return; }
+  } catch(e) {}
+  setTimeout(loop, 250);
+}
+function stopScan(){
+  scanning = false;
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+// ---- settings ----
+$('saveGoal').onclick = () => { const g = +$('goalIn').value; if (g > 0) { store.set('goal', g); render(); show('today'); } };
+
+render();
+</script>
 </body>
 </html>
