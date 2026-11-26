@@ -164,7 +164,7 @@ const EMOJI = [
 ];
 const emojiFor = name => (EMOJI.find(([k]) => (name || '').includes(k)) || [,'🍽️'])[1];
 const myImgs = () => store.get('myImgs', {});
-const PH = '<span class="ph">אין<br>תמונה</span>';
+const PH = '<span class=ph>אין<br>תמונה</span>';
 function picHTML(p){
   const src = myImgs()[p.name] || p.img;
   return src ? `<img src="${String(src).replace(/"/g,'')}" loading="lazy" alt="" onerror="this.parentNode.innerHTML='${PH.replace(/'/g,"\\'")}'">` : PH;
