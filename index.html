@@ -127,8 +127,9 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
   <button data-v="settings">הגדרות</button>
 </nav>
 
+<script src="foods.js"></script>
 <script>
-const $ = id => document.getElementById(id);
+const $ =id => document.getElementById(id);
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -268,8 +269,14 @@ async function search(){
   if (!q) return;
   const res = $('results');
   res.innerHTML = '<div class="msg">מחפש...</div>';
-  const mine = Object.values(myFoods()).filter(f => f.name.includes(q));
-  let items = mine.slice();
+  const norm = s => s.replace(/[׳'"`״\-]/g, '').replace(/\s+/g, ' ').trim();
+  const nq = norm(q);
+  const mine = Object.values(myFoods()).filter(f => norm(f.name).includes(nq));
+  const basic = (window.BASIC_FOODS || [])
+    .filter(b => norm(b[0]).includes(nq))
+    .sort((a, b) => norm(a[0]).indexOf(nq) - norm(b[0]).indexOf(nq) || a[0].length - b[0].length)
+    .map(b => ({ code: 'basic-' + b[0], name: b[0], kcal: b[1], prot: b[2], carb: b[3], fat: b[4] }));
+  let items = mine.concat(basic);
   try {
     const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=25&fields=${FIELDS}`);
     const j = await r.json();
