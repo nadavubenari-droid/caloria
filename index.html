@@ -97,8 +97,11 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
       <input id="picUrl" placeholder="הדבק כאן תמונה או קישור לתמונה" style="font-size:14px">
       <button class="btn gray" style="flex:0 0 80px;margin-top:6px;font-size:15px" id="picUrlGo">שמור</button>
     </div>
-    <label>כמות (גרם / מ״ל)</label>
-    <input id="grams" type="number" inputmode="decimal" value="100">
+    <label>כמות</label>
+    <div class="row">
+      <input id="grams" type="number" inputmode="decimal" value="100">
+      <select id="unit" style="flex:1.3"></select>
+    </div>
     <div class="card" id="pCalc"></div>
     <button class="btn" id="addBtn">הוסף ליומן</button>
     <button class="btn gray" id="cancelBtn">ביטול</button>
@@ -259,18 +262,24 @@ function openProduct(p){
   if (!myImgs()[p.name] && !p.img) autoPic(p, false);
   $('gImg').href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(p.name.split(' · ')[0] + ' רקע לבן');
   $('pInfo').textContent = `ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · חלבון ${fmt(p.prot)} · פחמימה ${fmt(p.carb)} · שומן ${fmt(p.fat)}`;
-  $('grams').value = 100;
+  const units = [['גרם / מ״ל', 1]].concat(p.units || []);
+  $('unit').innerHTML = units.map((u, i) => `<option value="${i}"></option>`).join('');
+  [...$('unit').options].forEach((o, i) => { const u = units[i]; o.textContent = u[1] === 1 && i === 0 ? u[0] : `${u[0]} (${fmt(u[1])} ג׳)`; o.dataset.g = u[1]; });
+  const first = (p.units || []).findIndex(u => /^יחידה|פיתה|פרוסה|מנה/.test(u[0]));
+  if (first >= 0) { $('unit').selectedIndex = first + 1; $('grams').value = 1; } else $('grams').value = 100;
   calc();
   show('product');
 }
+const qtyGrams = () => (+$('grams').value || 0) * (+($('unit').selectedOptions[0] || {dataset:{g:1}}).dataset.g || 1);
+$('unit').onchange = () => { $('grams').value = +$('unit').selectedOptions[0].dataset.g === 1 ? 100 : 1; calc(); };
 function calc(){
-  const g = +$('grams').value || 0;
+  const g = qtyGrams();
   const r = g / 100;
   $('pCalc').textContent = `${Math.round(current.kcal * r)} קלוריות · חלבון ${fmt(current.prot * r)} ג׳ · פחמימה ${fmt((current.carb||0) * r)} ג׳ · שומן ${fmt((current.fat||0) * r)} ג׳`;
 }
 $('grams').oninput = calc;
 $('addBtn').onclick = () => {
-  const g = +$('grams').value || 0;
+  const g = Math.round(qtyGrams() * 10) / 10;
   if (!g) return;
   const log = store.get(key(), []);
   const r = g / 100;
@@ -316,6 +325,12 @@ async function lookup(code){
 $('manualGo').onclick = () => lookup($('manualCode').value);
 
 // ---- search ----
+let TZ = null;
+async function loadTZ(){
+  if (TZ) return TZ;
+  try { TZ = await (await fetch('tzameret.json')).json(); } catch(e) { TZ = []; }
+  return TZ;
+}
 async function search(){
   const q = $('q').value.trim();
   if (!q) return;
@@ -328,13 +343,23 @@ async function search(){
     .filter(b => norm(b[0]).includes(nq))
     .sort((a, b) => norm(a[0]).indexOf(nq) - norm(b[0]).indexOf(nq) || a[0].length - b[0].length)
     .map(b => ({ code: 'basic-' + b[0], name: b[0], img: window.foodImg(b[0]), kcal: b[1], prot: b[2], carb: b[3], fat: b[4] }));
-  let items = mine.concat(basic);
+  const tz = (await loadTZ())
+    .filter(b => norm(b[0]).includes(nq))
+    .sort((a, b) => norm(a[0]).indexOf(nq) - norm(b[0]).indexOf(nq) || a[0].length - b[0].length)
+    .slice(0, 60)
+    .map(b => ({ code: 'tz-' + b[0], name: b[0], kcal: b[1], prot: b[2], carb: b[3], fat: b[4], units: b[5] || [] }));
+  let items = mine.concat(basic, tz);
+  showResults(items, true);
   try {
     const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=25&fields=${FIELDS}`);
     const j = await r.json();
     items = items.concat((j.products || []).map(fromOFF).filter(p => p.kcal != null));
   } catch(e) {}
-  res.innerHTML = items.length ? '' : '<div class="msg">לא נמצאו תוצאות. אפשר להוסיף ידנית.</div>';
+  showResults(items, false);
+}
+function showResults(items, more){
+  const res = $('results');
+  res.innerHTML = items.length ? '' : (more ? '<div class="msg">מחפש...</div>' : '<div class="msg">לא נמצאו תוצאות. אפשר להוסיף ידנית.</div>');
   items.forEach(p => {
     const d = document.createElement('div');
     d.className = 'card res';
@@ -424,7 +449,7 @@ async function autoPic(p, next){
   const name = p.name.split(' · ')[0];
   if (!autoTried[name]) {
     autoTried[name] = { list: null, i: -1 };
-    const he = name.replace(/\(.*?\)/g,'').replace(/מבושל(ת|ים|ות)?|אפוי(ה)?/g,'').trim();
+    const he = name.split(',')[0].replace(/\(.*?\)/g,'').replace(/מבושל(ת|ים|ות)?|אפוי(ה)?/g,'').trim();
     let list = await offImgs(he);
     const en = (window.FOOD_EN || {})[name];
     if (en) list = list.concat(await offImgs(en));
