@@ -33,6 +33,8 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 .res{cursor:pointer}
 .msg{padding:10px;text-align:center;opacity:.8}
 .row{display:flex;gap:8px}.row>*{flex:1}
+.macros{display:flex;gap:10px;margin-top:8px;font-size:14px}.macros>div{flex:1}
+.bar.sm{height:6px;margin:4px 0 0}
 </style>
 </head>
 <body>
@@ -45,7 +47,12 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
   </div>
   <div class="big"><span id="totKcal">0</span> <span class="sub">/ <span id="goalKcal">2000</span> קל׳</span></div>
   <div class="bar" id="barWrap"><div id="bar" style="width:0"></div></div>
-  <div class="sub">חלבון: <span id="totProt">0</span> ג׳ · נשאר: <span id="left">2000</span> קל׳</div>
+  <div class="sub">נשאר: <span id="left">2000</span> קל׳</div>
+  <div class="macros">
+    <div><div class="sub">חלבון</div><div><span id="totP">0</span>/<span id="goalP">0</span> ג׳</div><div class="bar sm" id="bwP"><div id="bP"></div></div></div>
+    <div><div class="sub">פחמימה</div><div><span id="totC">0</span>/<span id="goalC">0</span> ג׳</div><div class="bar sm" id="bwC"><div id="bC"></div></div></div>
+    <div><div class="sub">שומן</div><div><span id="totF">0</span>/<span id="goalF">0</span> ג׳</div><div class="bar sm" id="bwF"><div id="bF"></div></div></div>
+  </div>
 </header>
 
 <main>
@@ -91,9 +98,11 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
   <section class="view" id="v-new">
     <div class="msg" id="newMsg">המוצר לא נמצא במאגר. הכנס נתונים מהאריזה (ל-100 גרם) — זה יישמר לפעם הבאה.</div>
     <label>שם המוצר</label><input id="nName">
+    <label>קלוריות ל-100 ג׳</label><input id="nKcal" type="number" inputmode="decimal">
     <div class="row">
-      <div><label>קלוריות ל-100 ג׳</label><input id="nKcal" type="number" inputmode="decimal"></div>
-      <div><label>חלבון ל-100 ג׳</label><input id="nProt" type="number" inputmode="decimal"></div>
+      <div><label>חלבון</label><input id="nProt" type="number" inputmode="decimal"></div>
+      <div><label>פחמימה</label><input id="nCarb" type="number" inputmode="decimal"></div>
+      <div><label>שומן</label><input id="nFat" type="number" inputmode="decimal"></div>
     </div>
     <button class="btn" id="saveNew">שמור והמשך</button>
     <button class="btn gray" id="cancelNew">ביטול</button>
@@ -101,8 +110,11 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 
   <!-- הגדרות -->
   <section class="view" id="v-settings">
-    <label>יעד קלוריות יומי</label>
-    <input id="goalIn" type="number" inputmode="numeric">
+    <div class="sub">יעדים יומיים (בגרמים)</div>
+    <label>חלבון</label><input id="gP" type="number" inputmode="numeric">
+    <label>פחמימה</label><input id="gC" type="number" inputmode="numeric">
+    <label>שומן</label><input id="gF" type="number" inputmode="numeric">
+    <div class="card" id="goalCalc"></div>
     <button class="btn" id="saveGoal">שמור</button>
     <div class="card sub" style="margin-top:16px">נתוני המוצרים מגיעים מ-Open Food Facts. מוצרים שהוספת ידנית והיומן נשמרים בטלפון הזה בלבד.</div>
   </section>
@@ -127,7 +139,15 @@ const OFF = 'https://world.openfoodfacts.org';
 const FIELDS = 'code,product_name,product_name_he,brands,nutriments';
 
 const key = () => 'log-' + day.toISOString().slice(0,10);
-const goal = () => store.get('goal', 2000);
+const macros = () => store.get('macros', { p: 150, c: 200, f: 67 });
+const kcalOf = m => m.p * 4 + m.c * 4 + m.f * 9;
+const goal = () => kcalOf(macros());
+const fmt = (x, d=1) => (+x || 0).toFixed(d).replace(/\.0$/, '');
+function macroBar(id, tot, g){
+  $('tot'+id).textContent = fmt(tot); $('goal'+id).textContent = g;
+  $('b'+id).style.width = (g ? Math.min(100, tot / g * 100) : 0) + '%';
+  $('bw'+id).classList.toggle('over', g && tot > g * 1.05);
+}
 const myFoods = () => store.get('myFoods', {});
 
 function render(){
@@ -135,13 +155,13 @@ function render(){
   const diff = Math.round((today - day) / 864e5);
   $('dateLabel').textContent = diff === 0 ? 'היום' : diff === 1 ? 'אתמול' : day.toLocaleDateString('he-IL');
   const log = store.get(key(), []);
-  let k = 0, p = 0;
+  let k = 0, p = 0, c = 0, f = 0;
   $('list').innerHTML = log.length ? '' : '<div class="msg">עוד לא נרשם כלום. סרוק ברקוד או חפש מוצר.</div>';
   log.forEach((e, i) => {
-    k += e.kcal; p += e.prot;
+    k += e.kcal; p += e.prot; c += e.carb || 0; f += e.fat || 0;
     const d = document.createElement('div');
     d.className = 'card entry';
-    d.innerHTML = `<div><div class="n"></div><div class="sub">${e.grams} ג׳ · ${Math.round(e.kcal)} קל׳ · ${e.prot.toFixed(1)} ג׳ חלבון</div></div><button class="del">✕</button>`;
+    d.innerHTML = `<div><div class="n"></div><div class="sub">${e.grams} ג׳ · ${Math.round(e.kcal)} קל׳ · ח ${fmt(e.prot)} · פ ${fmt(e.carb)} · ש ${fmt(e.fat)}</div></div><button class="del">✕</button>`;
     d.querySelector('.n').textContent = e.name;
     d.querySelector('.del').onclick = () => { log.splice(i,1); store.set(key(), log); render(); };
     $('list').appendChild(d);
@@ -149,7 +169,8 @@ function render(){
   const g = goal();
   $('totKcal').textContent = Math.round(k);
   $('goalKcal').textContent = g;
-  $('totProt').textContent = p.toFixed(1);
+  const m = macros();
+  macroBar('P', p, m.p); macroBar('C', c, m.c); macroBar('F', f, m.f);
   $('left').textContent = Math.round(g - k);
   $('bar').style.width = Math.min(100, k / g * 100) + '%';
   $('barWrap').classList.toggle('over', k > g);
@@ -159,7 +180,7 @@ function show(v){
   document.querySelectorAll('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   if (v === 'scan') startScan(); else stopScan();
-  if (v === 'settings') $('goalIn').value = goal();
+  if (v === 'settings') { const m = macros(); $('gP').value = m.p; $('gC').value = m.c; $('gF').value = m.f; goalCalc(); }
   window.scrollTo(0,0);
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.dataset.v));
@@ -175,28 +196,32 @@ function fromOFF(p){
     code: p.code,
     name: (p.product_name_he || p.product_name || 'מוצר ללא שם') + (p.brands ? ' · ' + p.brands.split(',')[0] : ''),
     kcal: kcal == null ? null : +kcal,
-    prot: n['proteins_100g'] == null ? 0 : +n['proteins_100g']
+    prot: +n['proteins_100g'] || 0,
+    carb: +n['carbohydrates_100g'] || 0,
+    fat: +n['fat_100g'] || 0
   };
 }
 function openProduct(p){
   if (p.kcal == null){ openNew(p.code, p.name, 'למוצר הזה אין נתוני קלוריות במאגר. הכנס מהאריזה (ל-100 גרם).'); return; }
   current = p;
   $('pName').textContent = p.name;
-  $('pInfo').textContent = `ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · ${p.prot.toFixed(1)} ג׳ חלבון`;
+  $('pInfo').textContent = `ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · חלבון ${fmt(p.prot)} · פחמימה ${fmt(p.carb)} · שומן ${fmt(p.fat)}`;
   $('grams').value = 100;
   calc();
   show('product');
 }
 function calc(){
   const g = +$('grams').value || 0;
-  $('pCalc').textContent = `${Math.round(current.kcal * g / 100)} קלוריות · ${(current.prot * g / 100).toFixed(1)} ג׳ חלבון`;
+  const r = g / 100;
+  $('pCalc').textContent = `${Math.round(current.kcal * r)} קלוריות · חלבון ${fmt(current.prot * r)} ג׳ · פחמימה ${fmt((current.carb||0) * r)} ג׳ · שומן ${fmt((current.fat||0) * r)} ג׳`;
 }
 $('grams').oninput = calc;
 $('addBtn').onclick = () => {
   const g = +$('grams').value || 0;
   if (!g) return;
   const log = store.get(key(), []);
-  log.push({ name: current.name, grams: g, kcal: current.kcal * g / 100, prot: current.prot * g / 100 });
+  const r = g / 100;
+  log.push({ name: current.name, grams: g, kcal: current.kcal * r, prot: current.prot * r, carb: (current.carb||0) * r, fat: (current.fat||0) * r });
   store.set(key(), log);
   render(); show('today');
 };
@@ -204,15 +229,16 @@ $('cancelBtn').onclick = () => show('today');
 
 function openNew(code, name, msg){
   $('newMsg').textContent = msg || 'המוצר לא נמצא במאגר. הכנס נתונים מהאריזה (ל-100 גרם) — זה יישמר לפעם הבאה.';
-  $('nName').value = name || ''; $('nKcal').value = ''; $('nProt').value = '';
+  $('nName').value = name || ''; ['nKcal','nProt','nCarb','nFat'].forEach(i => $(i).value = '');
   $('saveNew').dataset.code = code || '';
   show('new');
 }
 $('saveNew').onclick = () => {
-  const name = $('nName').value.trim(), kcal = +$('nKcal').value, prot = +$('nProt').value || 0;
-  if (!name || !kcal) { alertMsg('צריך שם וקלוריות'); return; }
+  const name = $('nName').value.trim(), prot = +$('nProt').value || 0, carb = +$('nCarb').value || 0, fat = +$('nFat').value || 0;
+  let kcal = +$('nKcal').value || (prot * 4 + carb * 4 + fat * 9);
+  if (!name || !kcal) { alertMsg('צריך שם וקלוריות (או אבות מזון)'); return; }
   const code = $('saveNew').dataset.code || ('my-' + Date.now());
-  const foods = myFoods(); foods[code] = { code, name, kcal, prot }; store.set('myFoods', foods);
+  const foods = myFoods(); foods[code] = { code, name, kcal, prot, carb, fat }; store.set('myFoods', foods);
   openProduct(foods[code]);
 };
 $('cancelNew').onclick = () => show('today');
@@ -253,7 +279,7 @@ async function search(){
   items.forEach(p => {
     const d = document.createElement('div');
     d.className = 'card res';
-    d.innerHTML = `<div class="n"></div><div class="sub">${Math.round(p.kcal)} קל׳ · ${p.prot.toFixed(1)} ג׳ חלבון ל-100 ג׳</div>`;
+    d.innerHTML = `<div class="n"></div><div class="sub">ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · ח ${fmt(p.prot)} · פ ${fmt(p.carb)} · ש ${fmt(p.fat)}</div>`;
     d.querySelector('.n').textContent = p.name;
     d.onclick = () => openProduct(p);
     res.appendChild(d);
@@ -288,7 +314,13 @@ function stopScan(){
 }
 
 // ---- settings ----
-$('saveGoal').onclick = () => { const g = +$('goalIn').value; if (g > 0) { store.set('goal', g); render(); show('today'); } };
+const readGoals = () => ({ p: +$('gP').value || 0, c: +$('gC').value || 0, f: +$('gF').value || 0 });
+function goalCalc(){
+  const m = readGoals();
+  $('goalCalc').textContent = `חלבון ${m.p * 4} + פחמימה ${m.c * 4} + שומן ${m.f * 9} = ${kcalOf(m)} קלוריות ביום`;
+}
+['gP','gC','gF'].forEach(i => $(i).oninput = goalCalc);
+$('saveGoal').onclick = () => { const m = readGoals(); if (kcalOf(m) > 0) { store.set('macros', m); render(); show('today'); } };
 
 render();
 </script>
