@@ -37,6 +37,7 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 .bar.sm{height:6px;margin:4px 0 0}
 .pic{flex:0 0 44px;width:44px;height:44px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden}
 .pic img{width:100%;height:100%;object-fit:contain;padding:3px}
+.ph{font-size:10px;color:#999;text-align:center;line-height:1.2}
 .pic.big{flex-basis:72px;width:72px;height:72px;font-size:46px}
 .item{display:flex;gap:10px;align-items:center}.item>.txt{flex:1;min-width:0}
 </style>
@@ -88,7 +89,7 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
   <!-- מוצר -->
   <section class="view" id="v-product">
     <div class="card" style="display:flex;gap:12px;align-items:center">
-      <div id="pPic" class="pic big"></div>
+      <div style="text-align:center"><div id="pPic" class="pic big"></div><div class="sub" id="picBtn" style="font-size:12px;margin-top:4px;color:#8bc34a">החלף תמונה</div><input type="file" id="picFile" accept="image/*" hidden></div>
       <div><div class="n" id="pName" style="font-size:20px"></div>
       <div class="sub" id="pInfo"></div></div>
     </div>
@@ -162,9 +163,11 @@ const EMOJI = [
   ['ביסלי','🥨'],['עוגיות','🍪'],['עוגה','🍰'],['עוגת','🍰'],['גלידה','🍦'],['חלבה','🍬'],['ופל','🧇'],['קולה','🥤'],['בירה','🍺'],['יין','🍷']
 ];
 const emojiFor = name => (EMOJI.find(([k]) => (name || '').includes(k)) || [,'🍽️'])[1];
+const myImgs = () => store.get('myImgs', {});
+const PH = '<span class="ph">אין<br>תמונה</span>';
 function picHTML(p){
-  const e = emojiFor(p.name);
-  return p.img ? `<img src="${p.img.replace(/"/g,'')}" loading="lazy" alt="" onerror="this.parentNode.textContent='${e}'">` : e;
+  const src = myImgs()[p.name] || p.img;
+  return src ? `<img src="${String(src).replace(/"/g,'')}" loading="lazy" alt="" onerror="this.parentNode.innerHTML='${PH.replace(/'/g,"\\'")}'">` : PH;
 }
 
 const key = () => 'log-' + day.toISOString().slice(0,10);
@@ -359,6 +362,23 @@ function goalCalc(){
 }
 ['gP','gC','gF'].forEach(i => $(i).oninput = goalCalc);
 $('saveGoal').onclick = () => { const m = readGoals(); if (kcalOf(m) > 0) { store.set('macros', m); render(); show('today'); } };
+
+function setMyPic(){ $('picFile').click(); }
+$('pPic').onclick = setMyPic; $('picBtn').onclick = setMyPic;
+$('picFile').onchange = e => {
+  const f = e.target.files[0]; if (!f || !current) return;
+  const img = new Image();
+  img.onload = () => {
+    const S = 200, c = document.createElement('canvas'); c.width = c.height = S;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,S,S);
+    const r = Math.min(S / img.width, S / img.height), w = img.width * r, h = img.height * r;
+    x.drawImage(img, (S-w)/2, (S-h)/2, w, h);
+    const m = myImgs(); m[current.name] = c.toDataURL('image/jpeg', .8); store.set('myImgs', m);
+    $('pPic').innerHTML = picHTML(current); render();
+    URL.revokeObjectURL(img.src); e.target.value = '';
+  };
+  img.src = URL.createObjectURL(f);
+};
 
 render();
 </script>
