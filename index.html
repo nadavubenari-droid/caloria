@@ -122,7 +122,19 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
     <label>שומן</label><input id="gF" type="number" inputmode="numeric">
     <div class="card" id="goalCalc"></div>
     <button class="btn" id="saveGoal">שמור</button>
-    <div class="card sub" style="margin-top:16px">נתוני המוצרים מגיעים מ-Open Food Facts. מוצרים שהוספת ידנית והיומן נשמרים בטלפון הזה בלבד.</div>
+    <div class="card" style="margin-top:16px">
+      <div style="font-weight:700;margin-bottom:4px">סנכרון ל-GitHub</div>
+      <div class="sub" id="syncStatus">לא מחובר — הנתונים נשמרים רק בטלפון</div>
+      <label>מפתח גישה (GitHub token)</label>
+      <input id="ghToken" type="password" autocomplete="current-password" name="password" placeholder="ghp_...">
+      <input type="text" name="username" value="caloria" autocomplete="username" hidden>
+      <button class="btn" id="ghConnect">התחבר וסנכרן</button>
+      <div class="row">
+        <button class="btn gray" id="syncNow">סנכרן עכשיו</button>
+        <button class="btn gray" id="ghLogout">נתק</button>
+      </div>
+    </div>
+    <div class="card sub">נתוני המוצרים מגיעים מ-Open Food Facts. כשהסנכרון מחובר, כל הנתונים נשמרים אוטומטית בקובץ פרטי בחשבון GitHub שלך.</div>
   </section>
 </main>
 
@@ -136,9 +148,10 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 <script src="foods.js"></script>
 <script>
 const $ =id => document.getElementById(id);
+const SYNC_SKIP = ['ghToken','gistId','updatedAt','syncedAt'];
 const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
-  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); if (!SYNC_SKIP.includes(k)) { localStorage.setItem('updatedAt', Date.now()); window.queuePush && window.queuePush(); } }catch(e){} }
 };
 let day = new Date(); day.setHours(0,0,0,0);
 let current = null; // {code,name,kcal,prot}
@@ -380,6 +393,93 @@ $('picFile').onchange = e => {
   };
   img.src = URL.createObjectURL(f);
 };
+
+// ---- GitHub sync (private gist) ----
+const GH = 'https://api.github.com';
+const GIST_FILE = 'caloria.json', GIST_DESC = 'caloria-data (מחשבון קלוריות)';
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e) {} };
+let pushTimer = null, syncing = false;
+function syncMsg(t, bad){ $('syncStatus').textContent = t; $('syncStatus').style.color = bad ? '#e57373' : ''; }
+function ghFetch(path, opt = {}){
+  return fetch(GH + path, { ...opt, headers: { 'Authorization': 'Bearer ' + lsGet('ghToken'), 'Accept': 'application/vnd.github+json', ...(opt.body ? {'Content-Type':'application/json'} : {}) } })
+    .then(async r => { if (!r.ok) { const e = new Error(r.status); e.status = r.status; throw e; } return r.status === 204 ? null : r.json(); });
+}
+function collect(){
+  const o = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!SYNC_SKIP.includes(k)) o[k] = localStorage.getItem(k); } } catch(e) {}
+  return { updatedAt: +lsGet('updatedAt') || 0, data: o };
+}
+function applyRemote(r){
+  try {
+    const keep = SYNC_SKIP.map(k => [k, lsGet(k)]);
+    localStorage.clear();
+    keep.forEach(([k, v]) => lsSet(k, v));
+    Object.entries(r.data || {}).forEach(([k, v]) => localStorage.setItem(k, v));
+    lsSet('updatedAt', String(r.updatedAt || Date.now()));
+  } catch(e) {}
+  render();
+}
+async function findGist(){
+  if (lsGet('gistId')) return lsGet('gistId');
+  for (let page = 1; page <= 5; page++) {
+    const list = await ghFetch('/gists?per_page=100&page=' + page);
+    const g = list.find(g => g.files && g.files[GIST_FILE]);
+    if (g) { lsSet('gistId', g.id); return g.id; }
+    if (list.length < 100) break;
+  }
+  return null;
+}
+async function readGist(id){
+  const g = await ghFetch('/gists/' + id);
+  const f = g.files[GIST_FILE];
+  if (!f) return null;
+  const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+  return JSON.parse(text);
+}
+async function push(){
+  if (!lsGet('ghToken') || syncing) return;
+  syncing = true;
+  try {
+    const body = { description: GIST_DESC, files: { [GIST_FILE]: { content: JSON.stringify(collect()) } } };
+    const id = await findGist();
+    if (id) await ghFetch('/gists/' + id, { method: 'PATCH', body: JSON.stringify(body) });
+    else { const g = await ghFetch('/gists', { method: 'POST', body: JSON.stringify({ ...body, public: false }) }); lsSet('gistId', g.id); }
+    lsSet('syncedAt', String(Date.now()));
+    syncMsg('מסונכרן ✓ ' + new Date().toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'}));
+  } catch(e) { handleErr(e); }
+  syncing = false;
+}
+async function pull(){
+  if (!lsGet('ghToken')) return;
+  syncMsg('מסנכרן...');
+  try {
+    const id = await findGist();
+    const remote = id ? await readGist(id) : null;
+    const local = collect();
+    if (remote && (remote.updatedAt || 0) > local.updatedAt) { applyRemote(remote); syncMsg('הנתונים נטענו מ-GitHub ✓'); }
+    else if (!remote || local.updatedAt > (remote.updatedAt || 0)) await push();
+    else syncMsg('מסונכרן ✓');
+  } catch(e) { handleErr(e); }
+}
+function handleErr(e){
+  if (e.status === 401) syncMsg('המפתח לא תקין או שפג תוקפו', true);
+  else if (e.status === 403 || e.status === 404) syncMsg('למפתח אין הרשאת gist', true);
+  else syncMsg('אין חיבור — הנתונים יסונכרנו כשיהיה אינטרנט', true);
+}
+window.queuePush = () => { if (!lsGet('ghToken')) return; clearTimeout(pushTimer); syncMsg('שומר...'); pushTimer = setTimeout(push, 1500); };
+$('ghConnect').onclick = async () => {
+  const t = $('ghToken').value.trim();
+  if (!t) { syncMsg('הדבק מפתח', true); return; }
+  lsSet('ghToken', t); lsSet('gistId', null);
+  try { await ghFetch('/user'); } catch(e) { handleErr(e); return; }
+  await pull();
+};
+$('syncNow').onclick = pull;
+$('ghLogout').onclick = () => { lsSet('ghToken', null); lsSet('gistId', null); $('ghToken').value = ''; syncMsg('לא מחובר — הנתונים נשמרים רק בטלפון'); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && pushTimer) { clearTimeout(pushTimer); pushTimer = null; push(); } else if (document.visibilityState === 'visible') pull(); });
+if (lsGet('ghToken')) { $('ghToken').value = lsGet('ghToken'); pull(); }
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e) {}
 
 render();
 </script>
