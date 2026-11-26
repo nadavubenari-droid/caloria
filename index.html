@@ -89,7 +89,7 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
   <!-- מוצר -->
   <section class="view" id="v-product">
     <div class="card" style="display:flex;gap:12px;align-items:center">
-      <div style="text-align:center"><div id="pPic" class="pic big"></div><div class="sub" id="picBtn" style="font-size:12px;margin-top:4px;color:#8bc34a">החלף תמונה</div><a id="gImg" target="_blank" rel="noopener" style="display:block;font-size:12px;margin-top:4px;color:#64b5f6;text-decoration:none">חפש בגוגל</a><input type="file" id="picFile" accept="image/*" hidden></div>
+      <div style="text-align:center"><div id="pPic" class="pic big"></div><div class="sub" id="picBtn" style="font-size:12px;margin-top:4px;color:#8bc34a">החלף תמונה</div><div class="sub" id="autoPic" style="font-size:12px;margin-top:4px;color:#ffb74d">תמונה אחרת</div><a id="gImg" target="_blank" rel="noopener" style="display:block;font-size:12px;margin-top:4px;color:#64b5f6;text-decoration:none">חפש בגוגל</a><input type="file" id="picFile" accept="image/*" hidden></div>
       <div><div class="n" id="pName" style="font-size:20px"></div>
       <div class="sub" id="pInfo"></div></div>
     </div>
@@ -256,6 +256,7 @@ function openProduct(p){
   current = p;
   $('pName').textContent = p.name;
   $('pPic').innerHTML = picHTML(p);
+  if (!myImgs()[p.name] && !p.img) autoPic(p, false);
   $('gImg').href = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(p.name.split(' · ')[0] + ' רקע לבן');
   $('pInfo').textContent = `ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · חלבון ${fmt(p.prot)} · פחמימה ${fmt(p.carb)} · שומן ${fmt(p.fat)}`;
   $('grams').value = 100;
@@ -409,6 +410,28 @@ $('picUrl').addEventListener('paste', e => {
   if (im) { e.preventDefault(); blobToPic(im.getAsFile()); return; }
   setTimeout(urlPic, 50);
 });
+
+// ---- automatic picture from Open Food Facts ----
+const autoTried = {};
+async function autoPic(p, next){
+  const base = p.name.split(' · ')[0].replace(/\(.*?\)/g,'').replace(/מבושל(ת|ים|ות)?|אפוי(ה)?/g,'').trim();
+  const key = base;
+  if (!autoTried[key]) {
+    autoTried[key] = { list: null, i: -1 };
+    try {
+      const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(base)}&search_simple=1&json=1&page_size=24&fields=image_front_small_url,image_front_url`);
+      const j = await r.json();
+      autoTried[key].list = (j.products || []).map(x => x.image_front_url || x.image_front_small_url).filter(Boolean);
+    } catch(e) { autoTried[key].list = []; }
+  }
+  const t = autoTried[key];
+  if (!t.list || !t.list.length) return false;
+  t.i = next ? (t.i + 1) % t.list.length : 0;
+  if (current !== p) return false;
+  saveMyPic(t.list[t.i]);
+  return true;
+}
+$('autoPic').onclick = async () => { if (!current) return; $('autoPic').textContent = 'מחפש...'; const ok = await autoPic(current, true); $('autoPic').textContent = ok ? 'תמונה אחרת' : 'לא נמצאה תמונה'; };
 
 function setMyPic(){ $('picFile').click(); }
 $('pPic').onclick = setMyPic; $('picBtn').onclick = setMyPic;
