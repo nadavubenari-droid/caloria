@@ -35,8 +35,8 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 .row{display:flex;gap:8px}.row>*{flex:1}
 .macros{display:flex;gap:10px;margin-top:8px;font-size:14px}.macros>div{flex:1}
 .bar.sm{height:6px;margin:4px 0 0}
-.pic{flex:0 0 44px;width:44px;height:44px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden}
-.pic img{width:100%;height:100%;object-fit:cover}
+.pic{flex:0 0 44px;width:44px;height:44px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden}
+.pic img{width:100%;height:100%;object-fit:contain;padding:3px}
 .pic.big{flex-basis:72px;width:72px;height:72px;font-size:46px}
 .item{display:flex;gap:10px;align-items:center}.item>.txt{flex:1;min-width:0}
 </style>
@@ -305,7 +305,7 @@ async function search(){
   const basic = (window.BASIC_FOODS || [])
     .filter(b => norm(b[0]).includes(nq))
     .sort((a, b) => norm(a[0]).indexOf(nq) - norm(b[0]).indexOf(nq) || a[0].length - b[0].length)
-    .map(b => ({ code: 'basic-' + b[0], name: b[0], kcal: b[1], prot: b[2], carb: b[3], fat: b[4] }));
+    .map(b => ({ code: 'basic-' + b[0], name: b[0], img: window.foodImg(b[0]), kcal: b[1], prot: b[2], carb: b[3], fat: b[4] }));
   let items = mine.concat(basic);
   try {
     const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&json=1&page_size=25&fields=${FIELDS}`);

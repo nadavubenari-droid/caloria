@@ -178,3 +178,22 @@ window.BASIC_FOODS = [
 ['שוקו', 80, 3.4, 11, 2.3],
 ['אבקת חלבון', 380, 78, 8, 5],
 ];
+
+// תמונות מייצגות (רקע לבן) — TheMealDB ingredient images
+window.FOOD_IMG = {
+'פיתה':'Naan Bread','פיתה מקמח מלא':'Naan Bread','לחם לבן':'Bread','לחם מלא':'Wholegrain Bread','לחם שיפון':'Wholegrain Bread','חלה':'Crusty Bread','לחמניה':'Crusty Bread','באגט':'Baguette','לאפה':'Naan Bread','טורטיה':'Tortillas','קרואסון':'Puff Pastry','בורקס גבינה':'Puff Pastry','פריכיות אורז':'Rice','קרקר':'Digestive Biscuits',
+'אורז לבן מבושל':'Rice','אורז מלא מבושל':'Brown Rice','פסטה מבושלת':'Penne Rigate','פתיתים מבושלים':'Couscous','קוסקוס מבושל':'Couscous','בורגול מבושל':'Mixed Grain','קינואה מבושלת':'Mixed Grain','שיבולת שועל':'Rolled Oats','דייסת שיבולת שועל (במים)':'Oatmeal','קורנפלקס':'Oats','גרנולה':'Oats',
+'תפוח אדמה מבושל':'Potatoes','תפוח אדמה אפוי':'Potatoes','צ׳יפס':'Fries','פירה':'Floury Potatoes','בטטה אפויה':'Sweet Potatoes','תירס מבושל':'Sweetcorn',
+'חומוס מבושל':'Chickpeas','חומוס ממרח':'Chickpeas','טחינה גולמית':'Tahini','טחינה מוכנה':'Tahini','עדשים מבושלות':'Lentils','שעועית מבושלת':'Kidney Beans','אפונה ירוקה':'Peas','אדממה':'Sugar Snap Peas','פלאפל':'Chickpeas','טופו':'Paneer',
+'חזה עוף':'Chicken Breast','פרגית':'Chicken Thighs','שוק עוף':'Chicken Legs','כנפיים עוף':'Chicken','שניצל':'Chicken Breasts','חזה הודו':'Chicken Breasts','שווארמה הודו':'Doner Meat','בקר טחון':'Minced Beef','קציצות בקר':'Lean Minced Beef','סטייק אנטריקוט':'Beef Fillet','המבורגר (קציצה)':'Minced Beef','נקניקיה':'Sausages','פסטרמה':'Ham','קבב':'Lamb Mince',
+'סלמון':'Salmon','טונה בשמן (מסוננת)':'Tuna','טונה במים':'Tuna','אמנון':'White Fish Fillets','דניס':'White Fish','סרדינים בשמן':'Pilchards',
+'ביצה':'Eggs','ביצה קשה':'Eggs','חביתה':'Egg','חלב 3%':'Whole Milk','חלב 1%':'Semi-skimmed Milk','קוטג׳ 5%':'Cheese Curds','קוטג׳ 3%':'Cheese Curds','גבינה לבנה 5%':'Fromage Frais','גבינה צהובה':'Gouda Cheese','גבינה צהובה 9%':'Gouda Cheese','גבינת פטה':'Feta','גבינת שמנת':'Cream Cheese','לבנה':'Greek Yogurt','יוגורט 3%':'Yogurt','יוגורט יווני':'Greek Yogurt','מעדן חלבון':'Full Fat Yogurt','שמנת חמוצה':'Sour Cream','חמאה':'Butter',
+'מלפפון':'Cucumber','עגבניה':'Tomatoes','סלט ירקות':'Lettuce','חסה':'Little Gem Lettuce','גזר':'Carrots','פלפל אדום':'Red Pepper','בצל':'Onions','ברוקולי':'Broccoli','כרובית':'Cauliflower','כרוב':'Cabbage','חציל':'Aubergine','חציל קלוי':'Aubergine','קישוא':'Zucchini','פטריות':'Mushrooms','תרד':'Spinach','אבוקדו':'Avocado','זיתים':'Green Olives','חמוצים':'Cucumber',
+'תפוח':'Apples','בננה':'Banana','תפוז':'Orange','קלמנטינה':'Orange','אגס':'Pears','ענבים':'Grapes','אבטיח':'Watermelon','מלון':'Melon','תות':'Strawberries','מנגו':'Mango','אננס':'Pineapple','אפרסק':'Peaches','שזיף':'Plums','קיווי':'Kiwi','רימון':'Pomegranate','תמר':'Medjool Dates','תמר מג׳הול':'Medjool Dates','צימוקים':'Raisins',
+'שקדים':'Almonds','אגוזי מלך':'Walnuts','קשיו':'Cashew Nuts','בוטנים':'Peanuts','חמאת בוטנים':'Peanut Butter','פיסטוקים':'Pistachios','גרעינים שחורים':'Sunflower Seeds','גרעיני דלעת':'Pumpkin','צ׳יה':'Sesame Seed',
+'שמן זית':'Olive Oil','שמן קנולה':'Canola Oil','מיונז':'Mayonnaise','קטשופ':'Tomato Ketchup','חרדל':'Mustard','סילאן':'Black Treacle','דבש':'Honey','ריבה':'Raspberry Jam','סוכר':'Sugar','ממרח שוקולד':'Milk Chocolate',
+'שקשוקה':'Chopped Tomatoes','סביח (מנה)':'Aubergine','פיצה':'Mozzarella','ג׳חנון':'Puff Pastry','מלאווח':'Puff Pastry','מג׳דרה':'Brown Lentils','פתיתים עם עוף (מנה)':'Couscous','מרק עוף':'Chicken Stock','מרק ירקות':'Vegetable Stock','סושי':'Rice','המבורגר בלחמניה':'Minced Beef','טוסט גבינה':'Bread',
+'במבה':'Peanuts','ביסלי':'Pretzels','תפוצ׳יפס':'Potatoes','שוקולד חלב':'Milk Chocolate','שוקולד מריר 70%':'Dark Chocolate','עוגיות':'Peanut Cookies','עוגת שמרים':'Puff Pastry','גלידה':'Ice Cream','חלבה':'Tahini','ופל':'Digestive Biscuits',
+'מיץ תפוזים':'Orange','קולה':'Coca-Cola','בירה':'Stout','יין אדום':'Red Wine','קפה עם חלב':'Coffee','שוקו':'Cocoa','אבקת חלבון':'Protein Powder'
+};
+window.foodImg = name => window.FOOD_IMG[name] ? 'https://www.themealdb.com/images/ingredients/' + encodeURIComponent(window.FOOD_IMG[name]) + '.png' : '';
