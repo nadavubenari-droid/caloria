@@ -195,3 +195,21 @@ window.FOOD_IMG = {
 'שוקולד חלב':'Milk Chocolate','שוקולד מריר 70%':'Dark Chocolate'
 };
 window.foodImg = name => window.FOOD_IMG[name] ? 'https://www.themealdb.com/images/ingredients/' + encodeURIComponent(window.FOOD_IMG[name]) + '.png' : '';
+
+// שמות באנגלית לחיפוש תמונה כשאין תוצאה בעברית
+window.FOOD_EN = {
+'פיתה':'pita bread','פיתה מקמח מלא':'whole wheat pita','לחם לבן':'white bread','לחם מלא':'whole wheat bread','לחם שיפון':'rye bread','חלה':'challah','לחמניה':'bread roll','באגט':'baguette','לאפה':'lafa bread','טורטיה':'tortilla','קרואסון':'croissant','בורקס גבינה':'cheese bourekas','פריכיות אורז':'rice cakes','קרקר':'crackers',
+'אורז לבן מבושל':'white rice','אורז מלא מבושל':'brown rice','פסטה מבושלת':'pasta','פתיתים מבושלים':'ptitim','קוסקוס מבושל':'couscous','בורגול מבושל':'bulgur','קינואה מבושלת':'quinoa','שיבולת שועל':'rolled oats','דייסת שיבולת שועל (במים)':'oatmeal','קורנפלקס':'corn flakes','גרנולה':'granola',
+'תפוח אדמה מבושל':'potato','תפוח אדמה אפוי':'baked potato','צ׳יפס':'french fries','פירה':'mashed potatoes','בטטה אפויה':'sweet potato','תירס מבושל':'sweet corn',
+'חומוס מבושל':'chickpeas','חומוס ממרח':'hummus','טחינה גולמית':'tahini','טחינה מוכנה':'tahini sauce','עדשים מבושלות':'lentils','שעועית מבושלת':'beans','אפונה ירוקה':'green peas','אדממה':'edamame','פלאפל':'falafel','טופו':'tofu',
+'חזה עוף':'chicken breast','פרגית':'chicken thigh','שוק עוף':'chicken drumstick','כנפיים עוף':'chicken wings','שניצל':'chicken schnitzel','חזה הודו':'turkey breast','שווארמה הודו':'shawarma','בקר טחון':'ground beef','קציצות בקר':'meatballs','סטייק אנטריקוט':'ribeye steak','המבורגר (קציצה)':'burger patty','נקניקיה':'hot dog sausage','פסטרמה':'pastrami','קבב':'kebab',
+'סלמון':'salmon','טונה בשמן (מסוננת)':'tuna in oil','טונה במים':'tuna in water','אמנון':'tilapia','דניס':'sea bream','סרדינים בשמן':'sardines',
+'ביצה':'egg','ביצה קשה':'boiled egg','חביתה':'omelette','חלב 3%':'milk','חלב 1%':'low fat milk','קוטג׳ 5%':'cottage cheese','קוטג׳ 3%':'cottage cheese','גבינה לבנה 5%':'white cheese','גבינה צהובה':'yellow cheese','גבינה צהובה 9%':'light cheese','גבינת פטה':'feta','גבינת שמנת':'cream cheese','לבנה':'labneh','יוגורט 3%':'yogurt','יוגורט יווני':'greek yogurt','מעדן חלבון':'protein pudding','שמנת חמוצה':'sour cream','חמאה':'butter',
+'מלפפון':'cucumber','עגבניה':'tomato','סלט ירקות':'salad','חסה':'lettuce','גזר':'carrot','פלפל אדום':'red pepper','בצל':'onion','ברוקולי':'broccoli','כרובית':'cauliflower','כרוב':'cabbage','חציל':'eggplant','חציל קלוי':'roasted eggplant','קישוא':'zucchini','פטריות':'mushrooms','תרד':'spinach','אבוקדו':'avocado','זיתים':'olives','חמוצים':'pickles',
+'תפוח':'apple','בננה':'banana','תפוז':'orange','קלמנטינה':'clementine','אגס':'pear','ענבים':'grapes','אבטיח':'watermelon','מלון':'melon','תות':'strawberries','מנגו':'mango','אננס':'pineapple','אפרסק':'peach','שזיף':'plum','קיווי':'kiwi','רימון':'pomegranate','תמר':'dates','תמר מג׳הול':'medjool dates','צימוקים':'raisins',
+'שקדים':'almonds','אגוזי מלך':'walnuts','קשיו':'cashews','בוטנים':'peanuts','חמאת בוטנים':'peanut butter','פיסטוקים':'pistachios','גרעינים שחורים':'sunflower seeds','גרעיני דלעת':'pumpkin seeds','צ׳יה':'chia seeds',
+'שמן זית':'olive oil','שמן קנולה':'canola oil','מיונז':'mayonnaise','קטשופ':'ketchup','חרדל':'mustard','סילאן':'date syrup','דבש':'honey','ריבה':'jam','סוכר':'sugar','ממרח שוקולד':'chocolate spread',
+'שקשוקה':'shakshuka','סביח (מנה)':'sabich','פיצה':'pizza','ג׳חנון':'jachnun','מלאווח':'malawach','מג׳דרה':'mujadara','פתיתים עם עוף (מנה)':'ptitim','מרק עוף':'chicken soup','מרק ירקות':'vegetable soup','סושי':'sushi','המבורגר בלחמניה':'hamburger','טוסט גבינה':'cheese toast',
+'במבה':'bamba','ביסלי':'bissli','תפוצ׳יפס':'potato chips','שוקולד חלב':'milk chocolate','שוקולד מריר 70%':'dark chocolate 70%','עוגיות':'cookies','עוגת שמרים':'yeast cake','גלידה':'ice cream','חלבה':'halva','ופל':'wafers',
+'מיץ תפוזים':'orange juice','קולה':'cola','בירה':'beer','יין אדום':'red wine','קפה עם חלב':'coffee with milk','שוקו':'chocolate milk','אבקת חלבון':'whey protein'
+};

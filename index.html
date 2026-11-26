@@ -413,19 +413,25 @@ $('picUrl').addEventListener('paste', e => {
 
 // ---- automatic picture from Open Food Facts ----
 const autoTried = {};
+async function offImgs(term){
+  try {
+    const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(term)}&search_simple=1&json=1&page_size=24&fields=image_front_small_url,image_front_url`);
+    const j = await r.json();
+    return (j.products || []).map(x => x.image_front_url || x.image_front_small_url).filter(Boolean);
+  } catch(e) { return []; }
+}
 async function autoPic(p, next){
-  const base = p.name.split(' · ')[0].replace(/\(.*?\)/g,'').replace(/מבושל(ת|ים|ות)?|אפוי(ה)?/g,'').trim();
-  const key = base;
-  if (!autoTried[key]) {
-    autoTried[key] = { list: null, i: -1 };
-    try {
-      const r = await fetch(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(base)}&search_simple=1&json=1&page_size=24&fields=image_front_small_url,image_front_url`);
-      const j = await r.json();
-      autoTried[key].list = (j.products || []).map(x => x.image_front_url || x.image_front_small_url).filter(Boolean);
-    } catch(e) { autoTried[key].list = []; }
+  const name = p.name.split(' · ')[0];
+  if (!autoTried[name]) {
+    autoTried[name] = { list: null, i: -1 };
+    const he = name.replace(/\(.*?\)/g,'').replace(/מבושל(ת|ים|ות)?|אפוי(ה)?/g,'').trim();
+    let list = await offImgs(he);
+    const en = (window.FOOD_EN || {})[name];
+    if (en) list = list.concat(await offImgs(en));
+    autoTried[name].list = [...new Set(list)];
   }
-  const t = autoTried[key];
-  if (!t.list || !t.list.length) return false;
+  const t = autoTried[name];
+  if (!t.list.length) return false;
   t.i = next ? (t.i + 1) % t.list.length : 0;
   if (current !== p) return false;
   saveMyPic(t.list[t.i]);
