@@ -35,6 +35,10 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 .row{display:flex;gap:8px}.row>*{flex:1}
 .macros{display:flex;gap:10px;margin-top:8px;font-size:14px}.macros>div{flex:1}
 .bar.sm{height:6px;margin:4px 0 0}
+.pic{flex:0 0 44px;width:44px;height:44px;border-radius:10px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden}
+.pic img{width:100%;height:100%;object-fit:cover}
+.pic.big{flex-basis:72px;width:72px;height:72px;font-size:46px}
+.item{display:flex;gap:10px;align-items:center}.item>.txt{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -83,9 +87,10 @@ video{width:100%;border-radius:12px;background:#000;max-height:45vh;object-fit:c
 
   <!-- מוצר -->
   <section class="view" id="v-product">
-    <div class="card">
-      <div class="n" id="pName" style="font-size:20px"></div>
-      <div class="sub" id="pInfo"></div>
+    <div class="card" style="display:flex;gap:12px;align-items:center">
+      <div id="pPic" class="pic big"></div>
+      <div><div class="n" id="pName" style="font-size:20px"></div>
+      <div class="sub" id="pInfo"></div></div>
     </div>
     <label>כמות (גרם / מ״ל)</label>
     <input id="grams" type="number" inputmode="decimal" value="100">
@@ -137,7 +142,30 @@ const store = {
 let day = new Date(); day.setHours(0,0,0,0);
 let current = null; // {code,name,kcal,prot}
 const OFF = 'https://world.openfoodfacts.org';
-const FIELDS = 'code,product_name,product_name_he,brands,nutriments';
+const FIELDS = 'code,product_name,product_name_he,brands,nutriments,image_front_small_url';
+const EMOJI = [
+  ['אבקת חלבון','💪'],['חלבה','🍬'],['מרק','🍲'],['גבינת','🧀'],['לחמניה','🥯'],['חמאת בוטנים','🥜'],['תפוצ׳יפס','🥔'],['מיץ','🧃'],['תפוח אדמה','🥔'],['פירה','🥔'],['צ׳יפס','🍟'],
+  ['בטטה','🍠'],['קפה','☕'],['ממרח שוקולד','🍫'],['שוקולד','🍫'],['שוקו','🥛'],['פריכיות','🍘'],['קרקר','🍘'],
+  ['פיתה','🫓'],['לאפה','🫓'],['טורטיה','🫓'],['קרואסון','🥐'],['בורקס','🥟'],['טוסט','🥪'],['לחם','🍞'],['חלה','🍞'],['באגט','🥖'],
+  ['סביח','🥙'],['מג׳דרה','🍚'],['אורז','🍚'],['סושי','🍣'],['פסטה','🍝'],['פתיתים','🍝'],['קוסקוס','🥣'],['בורגול','🥣'],['קינואה','🥣'],
+  ['שיבולת','🥣'],['גרנולה','🥣'],['קורנפלקס','🥣'],['תירס','🌽'],['פלאפל','🧆'],['חומוס','🫘'],['טחינה','🫘'],['עדשים','🫘'],
+  ['שעועית','🫘'],['אפונה','🫛'],['אדממה','🫛'],['טופו','🫘'],['המבורגר','🍔'],['נקניקיה','🌭'],['פסטרמה','🥓'],['שניצל','🍗'],
+  ['עוף','🍗'],['פרגית','🍗'],['הודו','🍗'],['בקר','🥩'],['סטייק','🥩'],['קבב','🥩'],['קציצות','🥩'],['סלמון','🐟'],['טונה','🐟'],
+  ['אמנון','🐟'],['דניס','🐟'],['סרדינים','🐟'],['דג','🐟'],['שקשוקה','🍳'],['חביתה','🍳'],['ביצה','🥚'],['פיצה','🍕'],
+  ['ג׳חנון','🥞'],['מלאווח','🥞'],['מרק','🍲'],['גבינה','🧀'],['קוטג','🧀'],['לבנה','🧀'],['יוגורט','🥛'],['מעדן','🥛'],['חלב','🥛'],
+  ['שמנת','🧈'],['חמאה','🧈'],['מלפפון','🥒'],['עגבניה','🍅'],['סלט','🥗'],['חסה','🥬'],['גזר','🥕'],['פלפל','🫑'],['בצל','🧅'],
+  ['ברוקולי','🥦'],['כרובית','🥦'],['כרוב','🥬'],['תרד','🥬'],['חציל','🍆'],['קישוא','🥒'],['פטריות','🍄'],['אבוקדו','🥑'],
+  ['זית','🫒'],['חמוצים','🥒'],['תפוח','🍎'],['בננה','🍌'],['תפוז','🍊'],['קלמנטינה','🍊'],['אגס','🍐'],['ענבים','🍇'],['צימוקים','🍇'],
+  ['אבטיח','🍉'],['מלון','🍈'],['תות','🍓'],['מנגו','🥭'],['אננס','🍍'],['אפרסק','🍑'],['שזיף','🍑'],['קיווי','🥝'],['רימון','🍒'],
+  ['תמר','🌴'],['שקדים','🥜'],['אגוז','🥜'],['קשיו','🥜'],['בוטנים','🥜'],['פיסטוק','🥜'],['גרעינים','🌻'],['גרעיני','🎃'],['צ׳יה','🌱'],
+  ['שמן','🫒'],['מיונז','🥫'],['קטשופ','🍅'],['חרדל','🥫'],['סילאן','🍯'],['דבש','🍯'],['ריבה','🍓'],['סוכר','🍬'],['במבה','🥜'],
+  ['ביסלי','🥨'],['עוגיות','🍪'],['עוגה','🍰'],['עוגת','🍰'],['גלידה','🍦'],['חלבה','🍬'],['ופל','🧇'],['קולה','🥤'],['בירה','🍺'],['יין','🍷']
+];
+const emojiFor = name => (EMOJI.find(([k]) => (name || '').includes(k)) || [,'🍽️'])[1];
+function picHTML(p){
+  const e = emojiFor(p.name);
+  return p.img ? `<img src="${p.img.replace(/"/g,'')}" loading="lazy" alt="" onerror="this.parentNode.textContent='${e}'">` : e;
+}
 
 const key = () => 'log-' + day.toISOString().slice(0,10);
 const macros = () => store.get('macros', { p: 150, c: 200, f: 67 });
@@ -161,8 +189,8 @@ function render(){
   log.forEach((e, i) => {
     k += e.kcal; p += e.prot; c += e.carb || 0; f += e.fat || 0;
     const d = document.createElement('div');
-    d.className = 'card entry';
-    d.innerHTML = `<div><div class="n"></div><div class="sub">${e.grams} ג׳ · ${Math.round(e.kcal)} קל׳ · ח ${fmt(e.prot)} · פ ${fmt(e.carb)} · ש ${fmt(e.fat)}</div></div><button class="del">✕</button>`;
+    d.className = 'card entry item';
+    d.innerHTML = `<div class="pic">${picHTML(e)}</div><div class="txt"><div class="n"></div><div class="sub">${e.grams} ג׳ · ${Math.round(e.kcal)} קל׳ · ח ${fmt(e.prot)} · פ ${fmt(e.carb)} · ש ${fmt(e.fat)}</div></div><button class="del">✕</button>`;
     d.querySelector('.n').textContent = e.name;
     d.querySelector('.del').onclick = () => { log.splice(i,1); store.set(key(), log); render(); };
     $('list').appendChild(d);
@@ -195,6 +223,7 @@ function fromOFF(p){
   if (kcal == null && n['energy_100g'] != null) kcal = n['energy_100g'] / 4.184;
   return {
     code: p.code,
+    img: p.image_front_small_url || '',
     name: (p.product_name_he || p.product_name || 'מוצר ללא שם') + (p.brands ? ' · ' + p.brands.split(',')[0] : ''),
     kcal: kcal == null ? null : +kcal,
     prot: +n['proteins_100g'] || 0,
@@ -206,6 +235,7 @@ function openProduct(p){
   if (p.kcal == null){ openNew(p.code, p.name, 'למוצר הזה אין נתוני קלוריות במאגר. הכנס מהאריזה (ל-100 גרם).'); return; }
   current = p;
   $('pName').textContent = p.name;
+  $('pPic').innerHTML = picHTML(p);
   $('pInfo').textContent = `ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · חלבון ${fmt(p.prot)} · פחמימה ${fmt(p.carb)} · שומן ${fmt(p.fat)}`;
   $('grams').value = 100;
   calc();
@@ -222,7 +252,7 @@ $('addBtn').onclick = () => {
   if (!g) return;
   const log = store.get(key(), []);
   const r = g / 100;
-  log.push({ name: current.name, grams: g, kcal: current.kcal * r, prot: current.prot * r, carb: (current.carb||0) * r, fat: (current.fat||0) * r });
+  log.push({ name: current.name, img: current.img || '', grams: g, kcal: current.kcal * r, prot: current.prot * r, carb: (current.carb||0) * r, fat: (current.fat||0) * r });
   store.set(key(), log);
   render(); show('today');
 };
@@ -286,7 +316,8 @@ async function search(){
   items.forEach(p => {
     const d = document.createElement('div');
     d.className = 'card res';
-    d.innerHTML = `<div class="n"></div><div class="sub">ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · ח ${fmt(p.prot)} · פ ${fmt(p.carb)} · ש ${fmt(p.fat)}</div>`;
+    d.className = 'card res item';
+    d.innerHTML = `<div class="pic">${picHTML(p)}</div><div class="txt"><div class="n"></div><div class="sub">ל-100 ג׳: ${Math.round(p.kcal)} קל׳ · ח ${fmt(p.prot)} · פ ${fmt(p.carb)} · ש ${fmt(p.fat)}</div></div>`;
     d.querySelector('.n').textContent = p.name;
     d.onclick = () => openProduct(p);
     res.appendChild(d);
